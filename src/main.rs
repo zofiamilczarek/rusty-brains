@@ -7,6 +7,14 @@ struct Matrix {
     cols: i32
 }
 
+impl Mul<DVector<f32>> for DMatrix<f32> {
+    type Output = DVector<f32>;
+
+    fn mul(self, rhs : DVector<f32>) -> Self::Output {
+	// TODO
+    }
+}
+
 struct Vector {
     data : DVector<f32>,
     cols : i32
