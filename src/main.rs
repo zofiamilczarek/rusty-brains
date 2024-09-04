@@ -1,16 +1,8 @@
 extern crate nalgebra as na;
 use na::{DMatrix, DVector};
-use std::ops::Mul;
 
-struct Matrix {
-    data : DMatrix<f32>,
-    rows: i32,
-    cols: i32
-}
-struct Vector {
-    data : DVector<f32>,
-    cols : i32
-}
+type Vector = DVector<f32>;
+type Matrix = DMatrix<f32>;
 
 struct Activation {
     forward : fn (Vector) -> Vector,
@@ -33,18 +25,11 @@ fn drelu_scalar(x: f32) -> f32 {
 
 
 fn relu(v : Vector) -> Vector {
-    Vector {
-	data : v.data.map(relu_scalar),
-	cols : v.cols
-    }
+	v.map(relu_scalar)
 }
 
 fn drelu(v : Vector) -> Matrix {
-    Matrix {
-	data : DMatrix::from_diagonal(&v.data.map(drelu_scalar)),
-	cols : v.cols,
-	rows : v.cols
-    }
+    DMatrix::from_diagonal(&v.map(drelu_scalar))
 }
 
 struct Layer {
@@ -53,31 +38,31 @@ struct Layer {
     activation : Activation
 }
 
-fn make_standard_layer(bias : Vector, weights : Matrix) -> Option<Layer> {
-    if bias.cols == weights.cols {
-	Some(Layer {
+fn make_standard_layer(bias : Vector, weights : Matrix) -> Layer {
+    Layer {
 	    bias,
 	    weights,
 	    activation : Activation {
 		forward : relu,
 		backward : drelu
 	    }
-	})
-    } else { None }
+	}
 }
 
 pub trait Model {
     fn forward(&self,v : Vector) -> Vector;
-    fn backward(&self, v : Vector) -> Vector;
+    fn backward(&self, v : Vector) -> Matrix;
 }
 
 impl Model for Layer {
     fn forward(&self, v : Vector) -> Vector {
-	(self.activation.forward)((self.weights.data * v.data) + self.bias.data) 
+	let linear_part = (self.weights.clone() * v.clone()) + self.bias.clone();
+	(self.activation.forward)(linear_part)
     }
 
-    fn backward(&self, v : Vector) -> Vector {
-	(self.activation.backward)(self.weights.data * v.data + self.bias.data) * self.weights.data
+    fn backward(&self, v : Vector) -> Matrix {
+	let linear_part = self.weights.clone() * v.clone() + self.bias.clone();
+	(self.activation.backward)(linear_part) * self.weights.clone()
     }
 }
 
