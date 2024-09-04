@@ -1,20 +1,12 @@
 extern crate nalgebra as na;
 use na::{DMatrix, DVector};
+use std::ops::Mul;
 
 struct Matrix {
     data : DMatrix<f32>,
     rows: i32,
     cols: i32
 }
-
-impl Mul<DVector<f32>> for DMatrix<f32> {
-    type Output = DVector<f32>;
-
-    fn mul(self, rhs : DVector<f32>) -> Self::Output {
-	// TODO
-    }
-}
-
 struct Vector {
     data : DVector<f32>,
     cols : i32
@@ -22,7 +14,7 @@ struct Vector {
 
 struct Activation {
     forward : fn (Vector) -> Vector,
-    backward : fn(Vector) -> Matrix
+    backward : fn (Vector) -> Matrix
 } 
 
 fn max(val : f32, comp : f32, out : f32, default : f32) -> f32 {
@@ -31,26 +23,25 @@ fn max(val : f32, comp : f32, out : f32, default : f32) -> f32 {
     } else { default }
 }
 
-fn relu_unit(x : f32) -> f32 {
+fn relu_scalar(x : f32) -> f32 {
     max(x, 0.0, x, 0.0)
 }
 
-fn drelu_unit(x: f32) -> f32 {
+fn drelu_scalar(x: f32) -> f32 {
     max(x, 0.0, 1.0, 0.0)
 }
 
 
-
 fn relu(v : Vector) -> Vector {
     Vector {
-	data : v.data.map(relu_unit),
+	data : v.data.map(relu_scalar),
 	cols : v.cols
     }
 }
 
 fn drelu(v : Vector) -> Matrix {
     Matrix {
-	data : DMatrix::from_diagonal(&v.data.map(drelu_unit)),
+	data : DMatrix::from_diagonal(&v.data.map(drelu_scalar)),
 	cols : v.cols,
 	rows : v.cols
     }
@@ -62,7 +53,7 @@ struct Layer {
     activation : Activation
 }
 
-fn make_standard_Layer(bias : Vector, weights : Matrix) -> Option<Layer> {
+fn make_standard_layer(bias : Vector, weights : Matrix) -> Option<Layer> {
     if bias.cols == weights.cols {
 	Some(Layer {
 	    bias,
@@ -89,7 +80,6 @@ impl Model for Layer {
 	(self.activation.backward)(self.weights.data * v.data + self.bias.data) * self.weights.data
     }
 }
-
 
 fn main() {
     // A matrix with three lines and four columns.
